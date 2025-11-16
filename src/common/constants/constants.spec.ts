@@ -88,8 +88,7 @@ describe('Constants and Enums', () => {
           .requiredScoringFields,
       ).toContain('correctOption');
       expect(
-        QUESTION_TYPE_METADATA[QuestionType.MULTI_CHOICE]
-          .requiredScoringFields,
+        QUESTION_TYPE_METADATA[QuestionType.MULTI_CHOICE].requiredScoringFields,
       ).toContain('correctOptions');
       expect(
         QUESTION_TYPE_METADATA[QuestionType.NUMBER].requiredScoringFields,

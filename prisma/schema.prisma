@@ -2,11 +2,55 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+model Job {
+  id          String        @id @default(uuid())
+  title       String
+  location    String
+  customer    String
+  jobName     String
+  description String
+  questions   Question[]
+  applications Application[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([createdAt(sort: Desc)])
+  @@index([location])
+  @@index([customer])
+}
+
+model Question {
+  id         String   @id @default(uuid())
+  jobId      String
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  text       String
+  type       String
+  options    String?
+  scoring    String
+  createdAt  DateTime @default(now())
+
+  @@index([jobId])
+}
+
+model Application {
+  id             String   @id @default(uuid())
+  jobId          String
+  job            Job      @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  candidateName  String
+  candidateEmail String
+  answers        String
+  totalScore     Float
+  maxScore       Float
+  createdAt      DateTime @default(now())
+
+  @@index([jobId, totalScore(sort: Desc)])
+  @@index([jobId, createdAt(sort: Desc)])
 }

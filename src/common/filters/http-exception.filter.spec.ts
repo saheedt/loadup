@@ -253,4 +253,37 @@ describe('AllExceptionsFilter', () => {
       }),
     );
   });
+
+  it('should handle JSON request body exceptions', () => {
+    const mockJson = jest.fn();
+    const mockStatus = jest.fn().mockReturnValue({ json: mockJson });
+    const mockGetResponse = jest.fn().mockReturnValue({
+      status: mockStatus,
+    });
+    const mockGetRequest = jest.fn().mockReturnValue({
+      url: '/api/v1/jobs',
+    });
+    const mockHttpArgumentsHost = {
+      getResponse: mockGetResponse,
+      getRequest: mockGetRequest,
+    };
+    const mockArgumentsHost = {
+      switchToHttp: () => mockHttpArgumentsHost,
+    } as unknown as ArgumentsHost;
+
+    const exception = new Error('JSON');
+
+    console.log('ee ->>', exception.message);
+
+    filter.catch(exception, mockArgumentsHost);
+
+    expect(mockStatus).toHaveBeenCalledWith(400);
+    expect(mockJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 400,
+        message: 'Invalid JSON format',
+        error: {},
+      }),
+    );
+  });
 });

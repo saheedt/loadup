@@ -1,98 +1,637 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# LoadUp Job Application API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS backend service for creating job postings with customizable questions, accepting candidate applications, and automatically scoring them based on answer quality.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- **Job Management**: Create and retrieve job postings with custom questions
+- **Application Submission**: Accept candidate applications with automatic scoring
+- **Flexible Question Types**: Support for single-choice, multi-choice, number, and text questions answer types
+- **Automatic Scoring**: Scoring algorithms for each question type
+- **Pagination & Sorting**: Optimized list endpoints with flexible sorting options
+- **Input Sanitization**: XSS and injection attack prevention on all text inputs
+- **Unified Response Format**: Consistent API responses across all endpoints
+- **N+1 Query Prevention**: Optimized database queries with eager loading
+- **Testing**: Tests with sufficient coverage of business logic
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech Stack
 
-## Project setup
+- **Framework**: NestJS (TypeScript)
+- **Database**: SQLite with Prisma ORM
+- **Validation**: class-validator & class-transformer
+- **Sanitization**: isomorphic-dompurify
+- **Documentation**: Swagger/OpenAPI
+- **Testing**: Jest
 
+## Prerequisites
+
+- Node.js (v18 or higher)
+- npm or yarn
+
+## Installation
+
+### 1. Clone the repository:
 ```bash
-$ npm install
+git clone git@github.com:saheedt/loadup.git
+cd loadup
 ```
 
-## Compile and run the project
-
+### 2. Install dependencies:
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
 ```
 
-## Run tests
-
+### 3. Set up environment variables:
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp .env.sample .env
 ```
 
-## Deployment
+The `.env` file contains:
+- `DATABASE_URL`: SQLite database path (default: `file:./dev.db`)
+- `NODE_ENV`: Application environment (default: `development`)
+- `PORT`: Server port (default: `3000`)
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### 4. Set up SQLite database:
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+The project uses SQLite with Prisma ORM. Follow these steps to initialize your database:
 
+#### a. Generate Prisma Client
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npx prisma generate
+```
+This creates the Prisma client based on your schema.
+
+#### b. Run database migrations
+```bash
+npx prisma migrate deploy
+```
+This creates the SQLite database file at `prisma/dev.db` and applies all schema migrations.
+
+**What happens:**
+- Creates `prisma/dev.db` file (your SQLite database)
+- Creates all tables: `Job`, `Question`, `Application`
+- Sets up indexes for optimized queries
+- Database is now ready to use!
+
+**Verification:** After running migrations, you should see:
+- File created: `prisma/dev.db`
+
+#### c. (Optional) View your database
+```bash
+npx prisma studio
+```
+This opens a web UI at `http://localhost:5555` where you can browse and edit your database tables.
+
+### Database Reset (if needed):
+If you need to reset your database:
+```bash
+# Delete the database file
+rm prisma/dev.db
+
+# Re-run migrations
+npx prisma migrate deploy
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Troubleshooting Database Setup:
 
-## Resources
+**Problem: "Can't reach database server"**
+- Ensure the `prisma/` directory exists
+- Check `DATABASE_URL` in `.env` points to a valid path **(NOTE: path is relative to the prisma folder)**
+- Verify you have write permissions in the project directory
 
-Check out a few resources that may come in handy when working with NestJS:
+**Problem: "Migration failed"**
+- Delete `prisma/dev.db` and try again
+- Ensure Prisma client is generated: `npx prisma generate`
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+**Problem: "Table doesn't exist"**
+- Run migrations: `npx prisma migrate deploy`
+- If still failing, reset database (see above)
 
-## Support
+## Running the Application
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Development Mode
+```bash
+npm run start:dev
+```
 
-## Stay in touch
+The API will be available at `http://localhost:3000`
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### Production Mode
+```bash
+npm run build
+npm run start:prod
+```
+
+## Running Tests
+
+```bash
+# Unit tests
+npm test
+
+# E2E tests
+npm run test:e2e #not implemented
+
+# Test coverage
+npm run test:cov
+
+# Watch mode
+npm run test:watch
+```
+
+## API Documentation
+
+Interactive Swagger documentation is available at:
+```
+http://localhost:3000/api/v1/docs
+```
+
+## API Endpoints
+
+### Jobs
+
+#### Create Job
+```bash
+POST /api/v1/jobs
+```
+
+**Request Body:**
+```json
+{
+  "title": "Senior Backend Engineer",
+  "location": "San Francisco",
+  "customer": "LoadUp",
+  "jobName": "Backend-2024",
+  "description": "We are looking for an experienced backend engineer",
+  "questions": [
+    {
+      "text": "What is your experience with TypeScript?",
+      "type": "text",
+      "scoring": {
+        "points": 10,
+        "keywords": ["typescript", "nodejs", "backend"]
+      }
+    },
+    {
+      "text": "How many years of experience do you have?",
+      "type": "number",
+      "scoring": {
+        "min": 3,
+        "max": 10,
+        "points": 20
+      }
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "statusCode": 201,
+  "message": "Success",
+  "data": {
+    "id": "uuid",
+    "title": "Senior Backend Engineer",
+    "location": "San Francisco",
+    "questions": [...],
+    "createdAt": "2025-11-17T10:00:00Z"
+  }
+}
+```
+
+#### List Jobs (with Pagination & Sorting)
+```bash
+GET /api/v1/jobs?page=1&limit=10&sortBy=createdAt&order=desc
+```
+
+**Query Parameters:**
+- `page` (default: 1) - Page number
+- `limit` (default: 10, max: 100) - Items per page
+- `sortBy` (default: createdAt) - Sort field: `createdAt`, `location`, or `customer`
+- `order` (default: desc) - Sort order: `asc` or `desc`
+
+**Response:**
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": {
+    "data": [...],
+    "page": 1,
+    "limit": 10,
+    "total": 50,
+    "totalPages": 5
+  }
+}
+```
+
+#### Get Single Job
+```bash
+GET /api/v1/jobs/:id
+```
+
+### Applications
+
+#### Submit Application
+```bash
+POST /api/v1/jobs/:jobId/apply
+```
+
+**Request Body:**
+```json
+{
+  "candidateName": "John Doe",
+  "candidateEmail": "john@example.com",
+  "answers": [
+    {
+      "questionId": "question-uuid",
+      "value": "I have 5 years of TypeScript and Node.js experience"
+    },
+    {
+      "questionId": "question-uuid-2",
+      "value": 5
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "statusCode": 201,
+  "message": "Success",
+  "data": {
+    "id": "application-uuid",
+    "totalScore": 25,
+    "maxScore": 30,
+    "scorePercentage": 83.33,
+    "answers": [
+      {
+        "questionId": "...",
+        "questionText": "What is your experience...",
+        "answer": "I have 5 years...",
+        "score": 10,
+        "maxScore": 10
+      }
+    ]
+  }
+}
+```
+
+#### List Applications (with Pagination & Sorting)
+```bash
+GET /api/v1/jobs/:jobId/applications?page=1&limit=10&sortBy=score&order=desc
+```
+
+**Query Parameters:**
+- `page` (default: 1)
+- `limit` (default: 10, max: 100)
+- `sortBy` (default: score) - Sort field: `score` or `createdAt`
+- `order` (default: desc) - Sort order: `asc` or `desc`
+
+#### Get Single Application
+```bash
+GET /api/v1/applications/:id
+```
+
+## Question Types Guide
+
+LoadUp supports 4 different question types, each with its own scoring mechanism. Below are detailed examples of how to create each type.
+
+### 1. Text Question
+
+Text questions allow candidates to provide free-form text answers. Scoring is based on keyword matching.
+
+**Example:**
+```json
+{
+  "text": "Describe your experience with TypeScript and backend development",
+  "type": "text",
+  "scoring": {
+    "points": 10,
+    "keywords": ["typescript", "nodejs", "backend", "api", "express", "nest"]
+  }
+}
+```
+
+**How Candidates Answer:**
+```json
+{
+  "questionId": "uuid",
+  "value": "I have 5 years of TypeScript experience building backend APIs with NestJS"
+}
+```
+
+---
+
+### 2. Number Question
+
+Number questions expect numeric answers within a specified range.
+
+**Example:**
+```json
+{
+  "text": "How many years of backend development experience do you have?",
+  "type": "number",
+  "scoring": {
+    "points": 15,
+    "min": 3,
+    "max": 10
+  }
+}
+```
+
+**How Candidates Answer:**
+```json
+{
+  "questionId": "uuid",
+  "value": 5
+}
+```
+
+---
+
+### 3. Single Choice Question
+
+Single choice questions present multiple options where only ONE correct answer exists.
+
+**Example:**
+```json
+{
+  "text": "Which database is best suited for relational data with ACID compliance?",
+  "type": "single_choice",
+  "options": ["MongoDB", "PostgreSQL", "Redis", "Cassandra"],
+  "scoring": {
+    "points": 10,
+    "correctOption": "PostgreSQL"
+  }
+}
+```
+
+**How Candidates Answer:**
+```json
+{
+  "questionId": "uuid",
+  "value": "PostgreSQL"
+}
+```
+
+---
+
+### 4. Multi Choice Question
+
+Multi choice questions allow multiple correct answers with proportional scoring.
+
+**Example:**
+```json
+{
+  "text": "Which of the following are strongly-typed programming languages?",
+  "type": "multi_choice",
+  "options": ["TypeScript", "JavaScript", "Java", "Python", "Go"],
+  "scoring": {
+    "points": 20,
+    "correctOptions": ["TypeScript", "Java", "Go"]
+  }
+}
+```
+
+**How Candidates Answer:**
+```json
+{
+  "questionId": "uuid",
+  "value": ["TypeScript", "Java", "Go"]
+}
+```
+---
+
+## Scoring Algorithms
+
+### 1. Single Choice Question
+- **Full points** if answer matches the correct option
+- **Zero points** otherwise
+
+```typescript
+{
+  "type": "single_choice",
+  "options": ["Option A", "Option B", "Option C"],
+  "scoring": {
+    "correctOption": "Option B",
+    "points": 10
+  }
+}
+```
+
+### 2. Multi Choice Question
+- **Proportional scoring** based on correctly selected options
+- Score = points × (matching_options / total_correct_options)
+
+```typescript
+{
+  "type": "multi_choice",
+  "options": ["A", "B", "C", "D"],
+  "scoring": {
+    "correctOptions": ["A", "C"],
+    "points": 20
+  }
+}
+```
+
+### 3. Number Question
+- **Full points** if answer is within the specified range
+- **Zero points** otherwise
+
+```typescript
+{
+  "type": "number",
+  "scoring": {
+    "min": 3,
+    "max": 10,
+    "points": 15
+  }
+}
+```
+
+### 4. Text Question
+- **Keyword matching** with case-insensitive search
+- Score = points × (matched_keywords / total_keywords)
+
+```typescript
+{
+  "type": "text",
+  "scoring": {
+    "keywords": ["typescript", "nodejs", "backend"],
+    "points": 10
+  }
+}
+```
+
+## Architecture & Design Decisions
+
+### 1. Database Optimization
+
+**Indexing:**
+- Jobs: Indexes on `createdAt`, `location`, `customer` for efficient sorting
+- Applications: Compound indexes on `(jobId, totalScore)` and `(jobId, createdAt)`
+- Questions: Index on `jobId` for efficient eager loading
+
+**N+1 Query Prevention:**
+- All list endpoints use Prisma's `include` for eager loading
+- Single query with joins instead of multiple round trips
+
+**Example:**
+```typescript
+// Single query with eager loading (not N+1)
+const job = await prisma.job.findUnique({
+  where: { id },
+  include: { questions: true } // Loaded in same query
+});
+```
+
+### 2. Pagination Strategy
+
+**Offset-Based Pagination:**
+- Simple and intuitive (`page` + `limit`)
+- Reusable `PaginationQueryDto` across all endpoints
+- Generic `PaginatedResponseDto<T>` for type safety
+
+**Benefits:**
+- Predictable page numbers for users
+- Jump to any page directly
+- Total count and page calculation included
+
+### 3. Input Sanitization
+
+**XSS Prevention:**
+- DOMPurify sanitizes all text inputs before storage
+- Applied via NestJS pipes (transparent to business logic)
+- Prevents `<script>`, `<img>` injection, and event handlers
+
+**Fields Sanitized:**
+- Job: title, location, customer, description, question text, options
+- Application: candidate name, email, text answers
+
+### 4. Response Format
+
+**Unified Structure:**
+- All successful responses: `{ statusCode, message, data }`
+- All error responses: `{ statusCode, message, error, timestamp, path }`
+- Implemented via global interceptor and exception filter
+
+### 5. Scoring Engine
+
+**Strategy Pattern:**
+- Each question type has a dedicated scorer class
+- Easy to extend with new question types
+- Separation of concerns (scoring logic isolated)
+
+### 6. Data Storage Decisions
+
+**SQLite Limitations & Solutions:**
+- Arrays stored as JSON strings (transformed in service layer)
+- Scoring configs stored as JSON
+- Clean API contracts (arrays/objects) despite storage format
+- Transform layer prevents implementation details from leaking
+
+### 7. Validation Strategy
+
+**Two-Layer Validation:**
+- **Structured params** (sortBy, order, page, limit): Enum validation only
+- **Free text**: Validation + Sanitization
+- SQL injection prevented by Prisma's parameterized queries
+- Type-safety through TypeScript
+
+## Tradeoffs
+
+### 1. SQLite vs PostgreSQL
+**Decision:** SQLite
+- ✅ Zero configuration, single file database
+- ✅ Perfect for take-home assignments and demos
+- ✅ Easy for reviewers to run locally
+- ❌ Limited concurrent write performance (acceptable for demo)
+- **Migration Path:** Prisma makes switching to PostgreSQL straightforward
+
+### 2. Embedded Answers vs Separate Table
+**Decision:** Storing answers as JSON in Application table
+- ✅ Simpler queries, atomic operations
+- ✅ Answers always retrieved with application
+- ✅ Faster implementation
+- ❌ Less flexible for complex queries (not needed for current requirements)
+
+### 3. Calculate Score on Submit vs On-Demand
+**Decision:** Calculate and store on submit
+- ✅ Faster retrieval (no recalculation needed)
+- ✅ Consistent scores over time
+- ✅ Easier sorting by score
+- ✅ Score breakdown stored for auditing
+- ❌ Recalculation needed if scoring rules change (unlikely in demo)
+
+### 4. Offset vs Cursor Pagination
+**Decision:** Offset-based pagination
+- ✅ Simpler to implement and understand
+- ✅ Direct page access
+- ✅ Good for moderate datasets
+- ❌ Cursor-based would be better for very large datasets (overkill for demo)
+
+## Project Structure
+<!-- Generated with https://tree.nathanfriend.com/-->
+```
+loadup/
+├── prisma/                          # Prisma database files
+│   ├── schema.prisma                # Database schema definition
+│   ├── migrations/                  # Database migration files
+│   └── dev.db                       # SQLite database file (gitignored)
+├── src/
+│   ├── main.ts                      # Application entry point
+│   ├── app.module.ts                # Root module
+│   ├── app.controller.ts            # Root controller
+│   ├── app.service.ts               # Root service
+│   ├── database/                    # Database module
+│   │   ├── prisma.service.ts        # Prisma client service
+│   │   └── prisma.module.ts         # Prisma module
+│   ├── common/                      # Shared utilities
+│   │   ├── constants/               # Constants & error messages
+│   │   ├── decorators/              # Custom decorators
+│   │   ├── dto/                     # Shared DTOs (pagination)
+│   │   ├── enums/                   # Enums (question types, sort order)
+│   │   ├── filters/                 # Exception filters
+│   │   ├── interceptors/            # Response interceptors
+│   │   ├── interfaces/              # TypeScript interfaces
+│   │   └── pipes/                   # Validation & sanitization pipes
+│   ├── jobs/                        # Job management module
+│   │   ├── jobs.controller.ts
+│   │   ├── jobs.service.ts
+│   │   ├── jobs.module.ts
+│   │   └── dto/
+│   ├── applications/                # Application submission module
+│   │   ├── applications.controller.ts
+│   │   ├── applications.service.ts
+│   │   ├── applications.module.ts
+│   │   └── dto/
+│   └── scoring/                     # Scoring engine
+│       ├── scoring.service.ts
+│       ├── scoring.module.ts
+│       └── strategies/              # Scoring strategy implementations
+│           ├── single-choice.scorer.ts
+│           ├── multi-choice.scorer.ts
+│           ├── number.scorer.ts
+│           └── text.scorer.ts
+├── test/                            # E2E tests
+├── .env                             # Environment variables (gitignored)
+├── .env.sample                      # Environment variables template
+├── package.json                     # Dependencies and scripts
+└── tsconfig.json                    # TypeScript configuration
+```
+
+## Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+DATABASE_URL="file:./dev.db"
+NODE_ENV="development"
+PORT=3000
+```
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+MIT

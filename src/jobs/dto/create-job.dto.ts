@@ -74,9 +74,47 @@ export class CreateJobDto {
   description: string;
 
   @ApiProperty({
-    description: 'List of questions for this job',
+    description:
+      'List of questions for this job (supports 4 types: text, number, single_choice, multi_choice)',
     type: [CreateQuestionDto],
     minItems: VALIDATION_RULES.job.questions.minItems,
+    example: [
+      {
+        text: 'Describe your experience with TypeScript and Node.js',
+        type: 'text',
+        scoring: {
+          points: 10,
+          keywords: ['typescript', 'nodejs', 'backend', 'api'],
+        },
+      },
+      {
+        text: 'How many years of backend development experience do you have?',
+        type: 'number',
+        scoring: {
+          points: 15,
+          min: 3,
+          max: 10,
+        },
+      },
+      {
+        text: 'Which database technology do you prefer?',
+        type: 'single_choice',
+        options: ['PostgreSQL', 'MongoDB', 'MySQL', 'Redis'],
+        scoring: {
+          points: 10,
+          correctOption: 'PostgreSQL',
+        },
+      },
+      {
+        text: 'Which programming languages are you proficient in?',
+        type: 'multi_choice',
+        options: ['TypeScript', 'Python', 'Java', 'Go', 'Rust'],
+        scoring: {
+          points: 20,
+          correctOptions: ['TypeScript', 'Python'],
+        },
+      },
+    ],
   })
   @IsArray()
   @ValidateNested({ each: true })

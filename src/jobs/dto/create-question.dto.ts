@@ -44,10 +44,42 @@ export class CreateQuestionDto {
   options?: string[];
 
   @ApiProperty({
-    description: 'Scoring configuration for the question',
-    example: {
-      points: 10,
-      keywords: ['typescript', 'javascript', 'nodejs'],
+    description:
+      'Scoring configuration for the question. Structure varies by question type:\n' +
+      '- TEXT: { points: number, keywords: string[] }\n' +
+      '- NUMBER: { points: number, min: number, max: number }\n' +
+      '- SINGLE_CHOICE: { points: number, correctOption: string }\n' +
+      '- MULTI_CHOICE: { points: number, correctOptions: string[] }',
+    examples: {
+      text: {
+        value: {
+          points: 10,
+          keywords: ['typescript', 'javascript', 'nodejs'],
+        },
+        summary: 'Text question scoring',
+      },
+      number: {
+        value: {
+          points: 20,
+          min: 3,
+          max: 10,
+        },
+        summary: 'Number question scoring',
+      },
+      single_choice: {
+        value: {
+          points: 15,
+          correctOption: 'Option B',
+        },
+        summary: 'Single choice scoring',
+      },
+      multi_choice: {
+        value: {
+          points: 25,
+          correctOptions: ['Option A', 'Option C'],
+        },
+        summary: 'Multi choice scoring',
+      },
     },
   })
   @IsObject()

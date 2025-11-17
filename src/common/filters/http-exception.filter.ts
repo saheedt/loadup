@@ -41,29 +41,72 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
-
-    const message =
-      exception instanceof HttpException
-        ? exception.message
-        : 'Internal server error';
+    const isJsonParsingError = this.isJsonParsingError(exception);
+    const status = this.getStatusCode(exception, isJsonParsingError);
+    const message = this.getMessage(exception, isJsonParsingError);
+    const errorDetails = this.getErrorDetails(exception, isJsonParsingError);
 
     const errorResponse: ApiErrorResponse = {
       statusCode: status,
       message,
       error: {
-        details:
-          exception instanceof Error
-            ? { message: exception.message }
-            : { message: 'Unknown error' },
+        details: errorDetails,
       },
       timestamp: new Date().toISOString(),
       path: request.url,
     };
 
     response.status(status).json(errorResponse);
+  }
+
+  private isJsonParsingError(exception: unknown): boolean {
+    const errorMessage = exception instanceof Error ? exception.message : '';
+    return (
+      errorMessage.includes('JSON') ||
+      errorMessage.includes('Unexpected token') ||
+      errorMessage.includes('Expected property name')
+    );
+  }
+
+  private getStatusCode(
+    exception: unknown,
+    isJsonParsingError: boolean,
+  ): number {
+    if (isJsonParsingError) {
+      return HttpStatus.BAD_REQUEST;
+    }
+
+    if (exception instanceof HttpException) {
+      return exception.getStatus();
+    }
+
+    return HttpStatus.INTERNAL_SERVER_ERROR;
+  }
+
+  private getMessage(exception: unknown, isJsonParsingError: boolean): string {
+    if (isJsonParsingError) {
+      return 'Invalid JSON format';
+    }
+
+    if (exception instanceof HttpException) {
+      return exception.message;
+    }
+
+    return 'Internal server error';
+  }
+
+  private getErrorDetails(
+    exception: unknown,
+    isJsonParsingError: boolean,
+  ): { message: string } | undefined {
+    if (isJsonParsingError) {
+      return undefined;
+    }
+
+    if (exception instanceof Error) {
+      return { message: exception.message };
+    }
+
+    return { message: 'Unknown error' };
   }
 }

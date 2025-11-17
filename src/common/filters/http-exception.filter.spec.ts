@@ -273,8 +273,6 @@ describe('AllExceptionsFilter', () => {
 
     const exception = new Error('JSON');
 
-    console.log('ee ->>', exception.message);
-
     filter.catch(exception, mockArgumentsHost);
 
     expect(mockStatus).toHaveBeenCalledWith(400);

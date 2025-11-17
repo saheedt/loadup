@@ -2,9 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ApplicationsController } from './applications.controller';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
+import { SanitizationPipe } from '../common/pipes/sanitization.pipe';
 
 describe('ApplicationsController', () => {
   let controller: ApplicationsController;
+  let sanitizationPipe: SanitizationPipe;
 
   const mockApplicationsService = {
     create: jest.fn(),
@@ -18,10 +20,12 @@ describe('ApplicationsController', () => {
           provide: ApplicationsService,
           useValue: mockApplicationsService,
         },
+        SanitizationPipe,
       ],
     }).compile();
 
     controller = module.get<ApplicationsController>(ApplicationsController);
+    sanitizationPipe = module.get<SanitizationPipe>(SanitizationPipe);
   });
 
   afterEach(() => {
@@ -71,6 +75,40 @@ describe('ApplicationsController', () => {
         createDto,
       );
       expect(result).toEqual(mockResponse);
+    });
+
+    it('should sanitize HTML in answers', () => {
+      const input = {
+        candidateName: 'John<script>alert("xss")</script>Doe',
+        candidateEmail: 'test@test.com',
+        answers: [
+          {
+            questionId: 'q1',
+            value: '<img src="">Option C',
+          },
+          {
+            questionId: 'q2',
+            value: ['Option A<script>alert(1)</script>', 'Option B'],
+          },
+        ],
+      };
+
+      const sanitized = sanitizationPipe.transform(input, { type: 'body' });
+
+      expect(sanitized).toEqual({
+        candidateName: 'JohnDoe',
+        candidateEmail: 'test@test.com',
+        answers: [
+          {
+            questionId: 'q1',
+            value: 'Option C',
+          },
+          {
+            questionId: 'q2',
+            value: ['Option A', 'Option B'],
+          },
+        ],
+      });
     });
   });
 });

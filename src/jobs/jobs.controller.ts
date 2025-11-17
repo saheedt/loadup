@@ -7,6 +7,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UsePipes,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,6 +20,7 @@ import {
 import { JobsService } from './jobs.service';
 import { CreateJobDto, JobQueryDto, JobResponseDto } from './dto';
 import { ApiPaginatedResponse } from '../common/decorators/api-paginated-response.decorator';
+import { SanitizationPipe } from '../common/pipes/sanitization.pipe';
 
 @ApiTags('jobs')
 @Controller('jobs')
@@ -27,6 +29,7 @@ export class JobsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UsePipes(new SanitizationPipe())
   @ApiOperation({ summary: 'Create a new job posting with questions' })
   @ApiCreatedResponse({
     description: 'Job successfully created',

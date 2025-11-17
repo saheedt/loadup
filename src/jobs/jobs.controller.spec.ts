@@ -8,9 +8,11 @@ import { JobSortField } from '../common/enums/job-sort-field.enum';
 import { SortOrder } from '../common/enums/sort-order.enum';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { JobResponseDto } from './dto/job-response.dto';
+import { SanitizationPipe } from '../common/pipes/sanitization.pipe';
 
 describe('JobsController', () => {
   let controller: JobsController;
+  let sanitizationPipe: SanitizationPipe;
 
   const mockJobsService = {
     create: jest.fn(),
@@ -26,10 +28,12 @@ describe('JobsController', () => {
           provide: JobsService,
           useValue: mockJobsService,
         },
+        SanitizationPipe,
       ],
     }).compile();
 
     controller = module.get<JobsController>(JobsController);
+    sanitizationPipe = module.get<SanitizationPipe>(SanitizationPipe);
   });
 
   afterEach(() => {
@@ -83,6 +87,42 @@ describe('JobsController', () => {
 
       expect(mockJobsService.create).toHaveBeenCalledWith(createJobDto);
       expect(result).toEqual(mockResponse);
+    });
+
+    it('should sanitize HTML in job data', () => {
+      const input = {
+        title: 'Senior<script>alert(1)</script> Engineer',
+        location: 'SF<img src=x>',
+        customer: 'Company<b>Name</b>',
+        jobName: 'Job<hr>Name',
+        description: 'Great<script>alert("xss")</script> opportunity',
+        questions: [
+          {
+            text: 'What<img src=x onerror=alert(1)> is your experience?',
+            type: QuestionType.SINGLE_CHOICE,
+            options: ['Option<script>test</script>', 'Option B'],
+            scoring: { points: 10, correctOption: 'Option A' },
+          },
+        ],
+      };
+
+      const sanitized = sanitizationPipe.transform(input, { type: 'body' });
+
+      expect(sanitized).toEqual({
+        title: 'Senior Engineer',
+        location: 'SF',
+        customer: 'CompanyName',
+        jobName: 'JobName',
+        description: 'Great opportunity',
+        questions: [
+          {
+            text: 'What is your experience?',
+            type: QuestionType.SINGLE_CHOICE,
+            options: ['Option', 'Option B'],
+            scoring: { points: 10, correctOption: 'Option A' },
+          },
+        ],
+      });
     });
   });
 

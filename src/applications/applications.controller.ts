@@ -5,11 +5,13 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  UsePipes,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { ApplicationResponseDto } from './dto/application-response.dto';
+import { SanitizationPipe } from '../common/pipes/sanitization.pipe';
 
 @ApiTags('applications')
 @Controller('jobs')
@@ -18,6 +20,7 @@ export class ApplicationsController {
 
   @Post(':jobId/apply')
   @HttpCode(HttpStatus.CREATED)
+  @UsePipes(new SanitizationPipe())
   @ApiOperation({ summary: 'Submit an application for a job' })
   @ApiParam({
     name: 'jobId',

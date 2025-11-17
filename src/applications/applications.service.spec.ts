@@ -17,6 +17,9 @@ describe('ApplicationsService', () => {
     },
     application: {
       create: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
+      findUnique: jest.fn(),
     },
   };
 
@@ -462,6 +465,274 @@ describe('ApplicationsService', () => {
       expect(result.totalScore).toBe(15);
       expect(result.maxScore).toBe(15);
       expect(result.scorePercentage).toBe(100);
+    });
+  });
+
+  describe('findAllByJob', () => {
+    const jobId = 'job123';
+
+    it('should return paginated applications sorted by score (default)', async () => {
+      const mockApplications = [
+        {
+          id: 'app1',
+          jobId,
+          candidateName: 'Alice',
+          candidateEmail: 'alice@example.com',
+          answers: '[]',
+          totalScore: 90,
+          maxScore: 100,
+          createdAt: new Date('2024-01-01'),
+        },
+        {
+          id: 'app2',
+          jobId,
+          candidateName: 'Bob',
+          candidateEmail: 'bob@example.com',
+          answers: '[]',
+          totalScore: 80,
+          maxScore: 100,
+          createdAt: new Date('2024-01-02'),
+        },
+      ];
+
+      mockPrismaService.application.findMany.mockResolvedValue(
+        mockApplications,
+      );
+      mockPrismaService.application.count.mockResolvedValue(2);
+
+      const result = await service.findAllByJob(jobId, {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(mockPrismaService.application.findMany).toHaveBeenCalledWith({
+        where: { jobId },
+        skip: 0,
+        take: 10,
+        orderBy: { totalScore: 'desc' },
+      });
+      expect(mockPrismaService.application.count).toHaveBeenCalledWith({
+        where: { jobId },
+      });
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0].id).toBe('app1');
+      expect(result.data[0].scorePercentage).toBe(90);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(10);
+      expect(result.total).toBe(2);
+      expect(result.totalPages).toBe(1);
+    });
+
+    it('should sort by createdAt when specified', async () => {
+      const mockApplications = [
+        {
+          id: 'app2',
+          jobId,
+          candidateName: 'Bob',
+          candidateEmail: 'bob@example.com',
+          answers: '[]',
+          totalScore: 80,
+          maxScore: 100,
+          createdAt: new Date('2024-01-02'),
+        },
+      ];
+
+      mockPrismaService.application.findMany.mockResolvedValue(
+        mockApplications,
+      );
+      mockPrismaService.application.count.mockResolvedValue(1);
+
+      await service.findAllByJob(jobId, {
+        page: 1,
+        limit: 10,
+        sortBy: 'createdAt' as any,
+        order: 'asc' as any,
+      });
+
+      expect(mockPrismaService.application.findMany).toHaveBeenCalledWith({
+        where: { jobId },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'asc' },
+      });
+    });
+
+    it('should handle pagination correctly', async () => {
+      mockPrismaService.application.findMany.mockResolvedValue([]);
+      mockPrismaService.application.count.mockResolvedValue(25);
+
+      const result = await service.findAllByJob(jobId, {
+        page: 3,
+        limit: 10,
+      });
+
+      expect(mockPrismaService.application.findMany).toHaveBeenCalledWith({
+        where: { jobId },
+        skip: 20,
+        take: 10,
+        orderBy: { totalScore: 'desc' },
+      });
+      expect(result.totalPages).toBe(3);
+    });
+
+    it('should handle zero maxScore edge case', async () => {
+      const mockApplications = [
+        {
+          id: 'app1',
+          jobId,
+          candidateName: 'Charlie',
+          candidateEmail: 'charlie@example.com',
+          answers: '[]',
+          totalScore: 0,
+          maxScore: 0,
+          createdAt: new Date(),
+        },
+      ];
+
+      mockPrismaService.application.findMany.mockResolvedValue(
+        mockApplications,
+      );
+      mockPrismaService.application.count.mockResolvedValue(1);
+
+      const result = await service.findAllByJob(jobId, {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(result.data[0].scorePercentage).toBe(0);
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return application with full details', async () => {
+      const mockApplication = {
+        id: 'app1',
+        jobId: 'job123',
+        candidateName: 'John Doe',
+        candidateEmail: 'john@example.com',
+        answers: JSON.stringify([
+          {
+            questionId: 'q1',
+            questionText: 'What is your experience?',
+            answer: 'I have 5 years of TypeScript experience',
+            score: 8,
+            maxScore: 10,
+          },
+        ]),
+        totalScore: 8,
+        maxScore: 10,
+        createdAt: new Date('2024-01-01'),
+        job: {
+          id: 'job123',
+          title: 'Software Engineer',
+          questions: [
+            {
+              id: 'q1',
+              text: 'What is your experience?',
+              type: QuestionType.TEXT,
+            },
+          ],
+        },
+      };
+
+      mockPrismaService.application.findUnique.mockResolvedValue(
+        mockApplication,
+      );
+
+      const result = await service.findOne('app1');
+
+      expect(mockPrismaService.application.findUnique).toHaveBeenCalledWith({
+        where: { id: 'app1' },
+        include: {
+          job: true,
+        },
+      });
+      expect(result.id).toBe('app1');
+      expect(result.candidateName).toBe('John Doe');
+      expect(result.totalScore).toBe(8);
+      expect(result.maxScore).toBe(10);
+      expect(result.scorePercentage).toBe(80);
+      expect(result.answers).toHaveLength(1);
+      expect(result.answers[0].questionId).toBe('q1');
+    });
+
+    it('should throw NotFoundException when application does not exist', async () => {
+      mockPrismaService.application.findUnique.mockResolvedValue(null);
+
+      await expect(service.findOne('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.findOne('nonexistent')).rejects.toThrow(
+        ERROR_MESSAGES.application.notFound,
+      );
+    });
+
+    it('should handle zero maxScore edge case', async () => {
+      const mockApplication = {
+        id: 'app1',
+        jobId: 'job123',
+        candidateName: 'John Doe',
+        candidateEmail: 'john@example.com',
+        answers: JSON.stringify([]),
+        totalScore: 0,
+        maxScore: 0,
+        createdAt: new Date(),
+        job: {
+          id: 'job123',
+          questions: [],
+        },
+      };
+
+      mockPrismaService.application.findUnique.mockResolvedValue(
+        mockApplication,
+      );
+
+      const result = await service.findOne('app1');
+
+      expect(result.scorePercentage).toBe(0);
+    });
+
+    it('should parse answers JSON correctly', async () => {
+      const answerBreakdown = [
+        {
+          questionId: 'q1',
+          questionText: 'Question 1',
+          answer: 'Answer 1',
+          score: 5,
+          maxScore: 10,
+        },
+        {
+          questionId: 'q2',
+          questionText: 'Question 2',
+          answer: 'Answer 2',
+          score: 7,
+          maxScore: 10,
+        },
+      ];
+
+      const mockApplication = {
+        id: 'app1',
+        jobId: 'job123',
+        candidateName: 'John Doe',
+        candidateEmail: 'john@example.com',
+        answers: JSON.stringify(answerBreakdown),
+        totalScore: 12,
+        maxScore: 20,
+        createdAt: new Date(),
+        job: {
+          id: 'job123',
+          questions: [],
+        },
+      };
+
+      mockPrismaService.application.findUnique.mockResolvedValue(
+        mockApplication,
+      );
+
+      const result = await service.findOne('app1');
+
+      expect(result.answers).toEqual(answerBreakdown);
+      expect(result.answers).toHaveLength(2);
     });
   });
 });

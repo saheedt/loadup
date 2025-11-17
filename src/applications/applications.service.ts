@@ -12,9 +12,16 @@ import {
   AnswerBreakdownDto,
 } from './dto/application-response.dto';
 import { SubmitAnswerDto } from './dto/submit-answer.dto';
+import {
+  ListApplicationsQueryDto,
+  ApplicationSortField,
+} from './dto/list-applications-query.dto';
+import { ApplicationListItemDto } from './dto/application-list-item.dto';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { ERROR_MESSAGES } from '../common/constants/error-messages.constant';
 import { QuestionType } from '../common/enums/question-type.enum';
 import type { ScoringConfig } from '../common/interfaces/scoring-strategy.interface';
+import { SortOrder } from '../common/enums';
 
 type QuestionWithRelations = Prisma.QuestionGetPayload<{
   select: {
@@ -185,5 +192,88 @@ export class ApplicationsService {
         maxScore: result.maxScore,
       };
     });
+  }
+
+  async findAllByJob(
+    jobId: string,
+    query: ListApplicationsQueryDto,
+  ): Promise<PaginatedResponseDto<ApplicationListItemDto>> {
+    const {
+      page,
+      limit,
+      sortBy = ApplicationSortField.SCORE,
+      order = SortOrder.DESC,
+    } = query;
+
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    const orderByMap: Record<
+      ApplicationSortField,
+      Prisma.ApplicationOrderByWithRelationInput
+    > = {
+      [ApplicationSortField.SCORE]: { totalScore: order },
+      [ApplicationSortField.CREATED_AT]: { createdAt: order },
+    };
+
+    const [applications, total] = await Promise.all([
+      this.prisma.application.findMany({
+        where: { jobId },
+        skip,
+        take,
+        orderBy: orderByMap[sortBy],
+      }),
+      this.prisma.application.count({ where: { jobId } }),
+    ]);
+
+    const items: ApplicationListItemDto[] = applications.map((app) => ({
+      id: app.id,
+      jobId: app.jobId,
+      candidateName: app.candidateName,
+      candidateEmail: app.candidateEmail,
+      totalScore: app.totalScore,
+      maxScore: app.maxScore,
+      scorePercentage:
+        app.maxScore > 0
+          ? parseFloat(((app.totalScore / app.maxScore) * 100).toFixed(2))
+          : 0,
+      createdAt: app.createdAt,
+    }));
+
+    return new PaginatedResponseDto(items, page, limit, total);
+  }
+
+  async findOne(id: string): Promise<ApplicationResponseDto> {
+    const application = await this.prisma.application.findUnique({
+      where: { id },
+      include: {
+        job: true,
+      },
+    });
+
+    if (!application) {
+      throw new NotFoundException(ERROR_MESSAGES.application.notFound);
+    }
+
+    const answers = JSON.parse(application.answers) as AnswerBreakdownDto[];
+
+    return {
+      id: application.id,
+      jobId: application.jobId,
+      candidateName: application.candidateName,
+      candidateEmail: application.candidateEmail,
+      totalScore: application.totalScore,
+      maxScore: application.maxScore,
+      scorePercentage:
+        application.maxScore > 0
+          ? parseFloat(
+              ((application.totalScore / application.maxScore) * 100).toFixed(
+                2,
+              ),
+            )
+          : 0,
+      answers,
+      createdAt: application.createdAt,
+    };
   }
 }
